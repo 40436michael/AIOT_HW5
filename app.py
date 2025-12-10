@@ -1,6 +1,7 @@
 # app.py
 """
-Streamlit app: AI vs Human 文章偵測器（GPT-2 Perplexity + Heuristic）
+Streamlit app: AI 文章偵測器
+Method: GPT-2 Perplexity + Heuristic Text Features
 """
 
 import streamlit as st
@@ -10,27 +11,24 @@ import math
 import numpy as np
 import nltk
 from nltk.corpus import stopwords
-from nltk.tokenize import sent_tokenize, TreebankWordTokenizer
+from nltk.tokenize import TreebankWordTokenizer
 import matplotlib.pyplot as plt
 import pandas as pd
+import re
 
-# ---------------------------
+# =========================
 # Page config
-# ---------------------------
+# =========================
 st.set_page_config(
     page_title="AI 文章偵測器",
     layout="centered"
 )
 
-# ---------------------------
+# =========================
 # Load & cache resources
-# ---------------------------
+# =========================
 @st.cache_resource(show_spinner=False)
 def ensure_nltk():
-    try:
-        nltk.data.find("tokenizers/punkt")
-    except LookupError:
-        nltk.download("punkt")
     try:
         nltk.data.find("corpora/stopwords")
     except LookupError:
@@ -48,12 +46,19 @@ def load_gpt2():
 ensure_nltk()
 tokenizer_gpt2, gpt2_model = load_gpt2()
 
-# ✅ 穩定 tokenizer（不會吃 punkt_tab）
+# ✅ 穩定 tokenizer（不依賴 punkt / punkt_tab）
 tb_tokenizer = TreebankWordTokenizer()
 
-# ---------------------------
+# =========================
 # Utility functions
-# ---------------------------
+# =========================
+def simple_sentence_split(text):
+    """
+    Regex-based sentence splitter (Streamlit-safe).
+    """
+    sents = re.split(r'[.!?]+\s*', text)
+    return [s.strip() for s in sents if s.strip()]
+
 def compute_perplexity(text, tokenizer, model, max_len=1024, stride=512):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     enc = tokenizer.encode(text)
@@ -82,7 +87,7 @@ def repetition_score(text):
     toks = tb_tokenizer.tokenize(text.lower())
     if len(toks) < 3:
         return 0.0
-    trigrams = [tuple(toks[i:i + 3]) for i in range(len(toks) - 2)]
+    trigrams = [tuple(toks[i:i+3]) for i in range(len(toks)-2)]
     return 1 - len(set(trigrams)) / len(trigrams)
 
 def punctuation_ratio(text):
@@ -97,7 +102,7 @@ def stopword_ratio(text):
     return sum(1 for t in toks if t in sw) / len(toks)
 
 def sentence_length_variance(text):
-    sents = sent_tokenize(text)
+    sents = simple_sentence_split(text)
     if len(sents) <= 1:
         return 0.0
     lens = [len(tb_tokenizer.tokenize(s)) for s in sents]
@@ -116,9 +121,9 @@ def normalize(val, vmin, vmax, invert=False):
     x = np.clip(x, 0.0, 1.0)
     return 1 - x if invert else x
 
-# ---------------------------
+# =========================
 # Feature pipeline
-# ---------------------------
+# =========================
 def extract_features(text):
     return {
         "perplexity": compute_perplexity(text, tokenizer_gpt2, gpt2_model),
@@ -129,34 +134,30 @@ def extract_features(text):
         "avg_tok": avg_token_length(text),
     }
 
-def heuristic_score(feat):
-    p = normalize(feat["perplexity"], 5, 80, invert=True)
-    rep = normalize(feat["repetition"], 0, 0.5)
-    punct = normalize(feat["punctuation"], 0.005, 0.08)
-    stop = normalize(feat["stopword"], 0.2, 0.6, invert=True)
-    sentv = normalize(feat["sent_var"], 0, 100, invert=True)
-    tok = normalize(feat["avg_tok"], 3, 6)
+def heuristic_score(f):
+    p = normalize(f["perplexity"], 5, 80, invert=True)
+    rep = normalize(f["repetition"], 0, 0.5)
+    punct = normalize(f["punctuation"], 0.005, 0.08)
+    stop = normalize(f["stopword"], 0.2, 0.6, invert=True)
+    sentv = normalize(f["sent_var"], 0, 100, invert=True)
+    tok = normalize(f["avg_tok"], 3, 6)
 
-    score = (
-        0.45 * p +
-        0.12 * rep +
-        0.08 * punct +
-        0.10 * stop +
-        0.15 * sentv +
-        0.10 * tok
-    )
-    return float(np.clip(score, 0, 1))
+    return float(np.clip(
+        0.45*p + 0.12*rep + 0.08*punct +
+        0.10*stop + 0.15*sentv + 0.10*tok,
+        0.0, 1.0
+    ))
 
-# ---------------------------
+# =========================
 # Streamlit UI
-# ---------------------------
+# =========================
 st.title("AI 文章偵測器")
-st.caption("參考 JustDone AI Detector ｜ GPT-2 Perplexity + 啟發式特徵分析")
+st.caption("參考 JustDone AI Detector｜GPT-2 Perplexity + 啟發式分析")
 
 text = st.text_area(
-    "輸入文章內容（英文效果最佳）",
-    height=240,
-    placeholder="請貼上或輸入文章內容..."
+    "請輸入文章內容（英文效果最佳）",
+    height=260,
+    placeholder="Paste or type text here..."
 )
 
 method = st.radio(
@@ -165,7 +166,7 @@ method = st.radio(
 )
 
 if not text.strip():
-    st.info("請輸入文字後開始分析。")
+    st.info("請輸入文字後再進行分析。")
     st.stop()
 
 with st.spinner("分析中，請稍候..."):
@@ -183,10 +184,14 @@ with st.spinner("分析中，請稍候..."):
     ai_pct = int(round(ai_score * 100))
     human_pct = 100 - ai_pct
 
-# ---------------------------
+# =========================
 # Result
-# ---------------------------
-st.metric("判斷結果", f"{ai_pct}% 為 AI 生成", f"{human_pct}% 為人類撰寫")
+# =========================
+st.metric(
+    "判斷結果",
+    f"{ai_pct}% 為 AI 生成",
+    f"{human_pct}% 為人類撰寫"
+)
 
 df = pd.DataFrame({
     "類型": ["AI 生成", "人類撰寫"],
@@ -200,16 +205,15 @@ for i, v in enumerate(df["比例"]):
     ax.text(v + 1, i, f"{v}%")
 st.pyplot(fig)
 
-# ---------------------------
+# =========================
 # Diagnostics
-# ---------------------------
+# =========================
 with st.expander("顯示分析細節"):
     for k, v in feat.items():
-        st.write(f"**{k}**：{v:.4f}" if isinstance(v, float) else f"**{k}**：{v}")
+        st.write(f"**{k}**：{v:.4f}")
 
 st.markdown("---")
 st.write(
-    "⚠ 本系統為示範性 AI 文章偵測器，基於啟發式規則與語言模型困惑度，"
-    "不適合用於學術不端判定或法律用途。"
+    "⚠ 本系統為示範性 AI 文章偵測工具，使用啟發式規則與語言模型困惑度，"
+    "僅供教學與展示用途，不適合用於學術不端或法律判定。"
 )
-
