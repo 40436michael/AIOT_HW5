@@ -14,7 +14,7 @@
 專題目標並非提供最終的法律或學術判定工具，而是 展示 AI 文本偵測的技術流程與教學示範。
 
 **Streamlit 線上 Demo**  
-【[https://YOUR-STREAMLIT-APP.streamlit.ap](https://aiothw5-hlgfnupygxcwfoypzrq7df.streamlit.app/)p】
+https://aiothw5-hlgfnupygxcwfoypzrq7df.streamlit.app/
 
 
 
@@ -72,5 +72,6 @@ Perplexity 可有效捕捉語言模式與生成特徵。
 智慧整合模式 將兩者結合，可提供更平衡、合理的判定結果。
 
 本工具適合用於 教學、研究或實驗示範，幫助使用者了解 AI 生成文本的特性與檢測方法。但請注意，結果僅供參考，並不能替代正式的專業判斷。
+
 
 
