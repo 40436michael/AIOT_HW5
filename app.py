@@ -194,7 +194,7 @@ st.metric(
 )
 
 df = pd.DataFrame({
-    "類型": ["AI 生成", "人類撰寫"],
+    "類型": ["AI-generated", "Human-written"],
     "比例": [ai_pct, human_pct]
 })
 
@@ -217,3 +217,4 @@ st.write(
     "⚠ 本系統為示範性 AI 文章偵測工具，使用啟發式規則與語言模型困惑度，"
     "僅供教學與展示用途，不適合用於學術不端或法律判定。"
 )
+
