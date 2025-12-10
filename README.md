@@ -1,12 +1,22 @@
 # AI / Human 文章偵測器（Streamlit 應用）
+## 專題主旨
+隨著人工智慧生成文字技術（如 GPT 系列）的快速發展，辨識 AI 與人類撰寫文章的能力變得愈加重要。本專題旨在：
 
-本專題實作一個簡易的 **AI 與人類文章判別工具（AI Detector）**，使用者輸入一段文章後，系統即時判斷該文字為 AI 生成或人類撰寫，並以 **AI % / Human %** 機率方式呈現結果。
+建立示範性 AI 文章偵測工具
+結合 GPT-2 Perplexity 與文字啟發式特徵，提供簡單易用的判定方法。
 
-👉 **Streamlit 線上 Demo**  
-【https://YOUR-STREAMLIT-APP.streamlit.app】
+探索 AI 與人類文字的特性差異
+從語言困惑度、句子結構、詞彙重複度等角度分析文字，理解 AI 生成文本的模式。
 
-👉 **GitHub Repository**  
-【https://github.com/YOUR-USERNAME/YOUR-REPO-NAME】
+提供教學與實驗平台
+透過可視化圖表與特徵分析，幫助使用者直觀了解 AI 文章偵測的原理與方法。
+
+專題目標並非提供最終的法律或學術判定工具，而是 展示 AI 文本偵測的技術流程與教學示範。
+
+**Streamlit 線上 Demo**  
+【[https://YOUR-STREAMLIT-APP.streamlit.ap](https://aiothw5-hlgfnupygxcwfoypzrq7df.streamlit.app/)p】
+
+
 
 ---
 
@@ -49,3 +59,15 @@
 AI / Human 機率輸出
         ↓
 Streamlit 視覺化結果
+## 結論
+
+AI 文章偵測器透過 GPT-2 Perplexity 與 文字啟發式特徵 的結合，提供一個直觀的方式來判斷文章是 AI 生成或人類撰寫。
+
+Perplexity 可有效捕捉語言模式與生成特徵。
+
+啟發式文字特徵 則提供額外線索，例如重複度、句子結構與詞彙使用。
+
+智慧整合模式 將兩者結合，可提供更平衡、合理的判定結果。
+
+本工具適合用於 教學、研究或實驗示範，幫助使用者了解 AI 生成文本的特性與檢測方法。但請注意，結果僅供參考，並不能替代正式的專業判斷。
+
