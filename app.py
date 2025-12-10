@@ -46,16 +46,12 @@ def load_gpt2():
 ensure_nltk()
 tokenizer_gpt2, gpt2_model = load_gpt2()
 
-# ✅ 穩定 tokenizer（不依賴 punkt / punkt_tab）
 tb_tokenizer = TreebankWordTokenizer()
 
 # =========================
 # Utility functions
 # =========================
 def simple_sentence_split(text):
-    """
-    Regex-based sentence splitter (Streamlit-safe).
-    """
     sents = re.split(r'[.!?]+\s*', text)
     return [s.strip() for s in sents if s.strip()]
 
@@ -149,15 +145,33 @@ def heuristic_score(f):
     ))
 
 # =========================
-# Streamlit UI
+# UI
 # =========================
 st.title("AI 文章偵測器")
-st.caption("參考 JustDone AI Detector｜GPT-2 Perplexity + 啟發式分析")
+st.caption("GPT-2 Perplexity + 啟發式文字特徵（教學示範）")
+
+# -------- 範例區 --------
+with st.expander("📌 載入範例文字"):
+    if st.button("🤖 載入 AI 範例"):
+        st.session_state["text_input"] = (
+            "Artificial intelligence is transforming the way humans interact with "
+            "technology. By leveraging advanced algorithms and statistical methods, "
+            "AI systems are able to optimize decision-making processes across a wide range "
+            "of industries, thereby enhancing productivity and efficiency in a scalable manner."
+        )
+
+    if st.button("🧑‍💻 載入 Human 範例"):
+        st.session_state["text_input"] = (
+            "Last semester, I tried waking up early every day to study before class. "
+            "Some mornings were honestly terrible, especially when it was raining, "
+            "but I noticed I could focus better. I didn’t keep the habit forever, "
+            "though—it turned out I’m just not a morning person."
+        )
 
 text = st.text_area(
-    "請輸入文章內容（英文效果最佳）",
+    "請輸入或貼上英文文章",
     height=260,
-    placeholder="Paste or type text here..."
+    key="text_input"
 )
 
 method = st.radio(
@@ -165,56 +179,54 @@ method = st.radio(
     ["智慧整合模式（建議）", "僅 Perplexity", "僅文字特徵"]
 )
 
-if not text.strip():
-    st.info("請輸入文字後再進行分析。")
-    st.stop()
+# -------- 判定按鈕 --------
+analyze_btn = st.button("🔍 開始判定")
 
-with st.spinner("分析中，請稍候..."):
-    feat = extract_features(text)
-    h_score = heuristic_score(feat)
-    p_score = normalize(feat["perplexity"], 5, 80, invert=True)
+if analyze_btn:
+    if not text.strip():
+        st.warning("請先輸入文字。")
+        st.stop()
 
-    if method == "僅 Perplexity":
-        ai_score = p_score
-    elif method == "僅文字特徵":
-        ai_score = h_score
-    else:
-        ai_score = 0.6 * p_score + 0.4 * h_score
+    with st.spinner("分析中，請稍候..."):
+        feat = extract_features(text)
+        h_score = heuristic_score(feat)
+        p_score = normalize(feat["perplexity"], 5, 80, invert=True)
 
-    ai_pct = int(round(ai_score * 100))
-    human_pct = 100 - ai_pct
+        if method == "僅 Perplexity":
+            ai_score = p_score
+        elif method == "僅文字特徵":
+            ai_score = h_score
+        else:
+            ai_score = 0.6 * p_score + 0.4 * h_score
 
-# =========================
-# Result
-# =========================
-st.metric(
-    "判斷結果",
-    f"{ai_pct}% 為 AI 生成",
-    f"{human_pct}% 為人類撰寫"
-)
+        ai_pct = int(round(ai_score * 100))
+        human_pct = 100 - ai_pct
 
-df = pd.DataFrame({
-    "類型": ["AI-generated", "Human-written"],
-    "比例": [ai_pct, human_pct]
-})
+    # -------- 結果 --------
+    st.metric(
+        "判斷結果",
+        f"{ai_pct}% 為 AI 生成",
+        f"{human_pct}% 為人類撰寫"
+    )
 
-fig, ax = plt.subplots(figsize=(5, 2))
-ax.barh(df["類型"], df["比例"])
-ax.set_xlim(0, 100)
-for i, v in enumerate(df["比例"]):
-    ax.text(v + 1, i, f"{v}%")
-st.pyplot(fig)
+    df = pd.DataFrame({
+        "類型": ["AI-generated", "Human-written"],
+        "比例": [ai_pct, human_pct]
+    })
 
-# =========================
-# Diagnostics
-# =========================
-with st.expander("顯示分析細節"):
-    for k, v in feat.items():
-        st.write(f"**{k}**：{v:.4f}")
+    fig, ax = plt.subplots(figsize=(5, 2))
+    ax.barh(df["類型"], df["比例"])
+    ax.set_xlim(0, 100)
+    for i, v in enumerate(df["比例"]):
+        ax.text(v + 1, i, f"{v}%")
+    st.pyplot(fig)
+
+    with st.expander("🔍 分析細節"):
+        for k, v in feat.items():
+            st.write(f"**{k}**：{v:.4f}")
 
 st.markdown("---")
 st.write(
-    "⚠ 本系統為示範性 AI 文章偵測工具，使用啟發式規則與語言模型困惑度，"
-    "僅供教學與展示用途，不適合用於學術不端或法律判定。"
+    "⚠ 本工具為示範性 AI 文章偵測器，結合語言模型困惑度與啟發式特徵，"
+    "僅供教學展示使用，不適用於學術或法律判定。"
 )
-
